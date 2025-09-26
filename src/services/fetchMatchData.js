@@ -1,8 +1,9 @@
+// src/services/fetchMatchData.js
 const cheerio = require('cheerio');
 const axios = require('axios');
 
 const { InternalServer } = require('../core/response/errorResponse');
-const CRICBUZZ_URL = "https://www.cricbuzz.com"
+const CRICBUZZ_URL = "https://www.cricbuzz.com";
 
 const fetchScore = async (matchId) => {
     try {
@@ -42,45 +43,63 @@ const fetchScore = async (matchId) => {
             'bowlerTwoRun': $('.cb-col.cb-col-10.text-right').eq(7).text().trim(),
             'bowlerTwoWicket': $('.cb-col.cb-col-8.text-right').eq(7).text().trim(),
             'bowlerTwoEconomy': $('.cb-col.cb-col-14.text-right').eq(3).text().trim(),
-        }
+        };
     } catch (e) {
-        throw new InternalServer("Something went wrong")
+        throw new InternalServer("Something went wrong while fetching score");
     }
-}
+};
 
+const fetchCommentary = async (matchId) => {
+    try {
+        const response = await axios.get(`${CRICBUZZ_URL}/live-cricket-scores/${matchId}`);
+        const $ = cheerio.load(response.data);
+
+        const commentary = [];
+        // Select commentary entries (adjust selector based on actual HTML structure)
+        $('.cb-col.cb-col-100.cb-com-ln').each((index, element) => {
+            const over = $(element).find('.cb-col.cb-col-8.text-bold').text().trim();
+            const text = $(element).find('.cb-col.cb-col-90').text().trim();
+            if (over && text) {
+                commentary.push({
+                    over,
+                    text
+                });
+            }
+        });
+
+        return {
+            matchId,
+            commentary: commentary.length ? commentary : ['No commentary available at the moment']
+        };
+    } catch (e) {
+        throw new InternalServer("Something went wrong while fetching commentary");
+    }
+};
 
 const fetchMatches = async (endpoint, origin = "international") => {
     try {
-
-        const URL = `${CRICBUZZ_URL}/cricket-match/${endpoint}`
-
+        const URL = `${CRICBUZZ_URL}/cricket-match/${endpoint}`;
         const response = await axios.get(URL);
         const $ = cheerio.load(response.data, { xmlMode: true });
 
         const matches = [];
 
-        // Iterate through each match element of the active match type
         $(`.cb-plyr-tbody[ng-show="active_match_type == '${origin}-tab'"] .cb-col-100.cb-col`).each((index, matchElement) => {
-            // Extract match details
             const titleElement = $(matchElement).find('.cb-lv-scr-mtch-hdr a');
             const title = titleElement.text().trim();
-
-            // Check if titleElement has an href attribute
             const hrefAttribute = titleElement.attr('href');
-            const matchId = hrefAttribute ? hrefAttribute.match(/\/(\d+)\//)[1] : null; // Extracting match ID from href if available
-
+            const matchId = hrefAttribute ? hrefAttribute.match(/\/(\d+)\//)[1] : null;
 
             const teams = [];
             $(matchElement).find('.cb-ovr-flo.cb-hmscg-tm-nm').each((i, teamElement) => {
                 const teamName = $(teamElement).text().trim();
                 const run = $(matchElement).find('.cb-ovr-flo').filter(':not(.cb-hmscg-tm-nm)').eq(i).text().trim();
-                const senitizeRun = run.split(teamName).join("")
+                const senitizeRun = run.split(teamName).join("");
 
                 const teamObject = {
                     team: teamName,
                     run: senitizeRun,
                 };
-
                 teams.push(teamObject);
             });
 
@@ -92,7 +111,6 @@ const fetchMatches = async (endpoint, origin = "international") => {
             const overViewIfLive = $(matchElement).find(".cb-text-live").text().trim();
             const overViewIfComplete = $(matchElement).find(".cb-text-complete").text().trim();
 
-            // Create an object for the match
             const matchObject = {
                 id: matchId,
                 title,
@@ -105,27 +123,24 @@ const fetchMatches = async (endpoint, origin = "international") => {
                 overview: overViewIfLive || overViewIfComplete
             };
 
-
-
-            // Categorize matches based on type
             if (matchId && title.length) {
                 const matchIdExist = matches.filter(match => match.id === matchId);
                 if (!matchIdExist.length) {
-                    matches.push(matchObject)
+                    matches.push(matchObject);
                 }
             }
         });
 
-
         return {
             matches
-        }
+        };
     } catch (error) {
-        throw new InternalServer(error.message)
+        throw new InternalServer(error.message);
     }
-}
+};
 
 module.exports = {
     fetchScore,
+    fetchCommentary,
     fetchMatches
-}
+};

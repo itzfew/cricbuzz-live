@@ -19,6 +19,10 @@ const fetchScore = async (matchId) => {
         const rain_break = $('.cb-text-rain').text().trim() || 'Match Stats will Update Soon';
         const wet_outfield = $('.cb-text-wetoutfield').text().trim() || 'Match Stats will Update Soon';
 
+        // Extract commentary: Last 10 non-empty lines from .cb-com-ln elements
+        const allCommentary = $('.cb-com-ln').map((i, el) => $(el).text().trim()).get();
+        const commentary = allCommentary.slice(-10).filter(text => text.length > 0 && !text.includes('Stats by') && !text.includes('Local Time')); // Filter out stats/headers if needed
+
         return {
             'title': $('.cb-nav-hdr.cb-font-18.line-ht24').text().trim().replace(', Commentary', ''),
             'update': update !== 'Match Stats will Update Soon' ? update : process || noresult || stumps || lunch || inningsbreak || tea || rain_break || wet_outfield || 'Match Stats will Update Soon...',
@@ -42,12 +46,12 @@ const fetchScore = async (matchId) => {
             'bowlerTwoRun': $('.cb-col.cb-col-10.text-right').eq(7).text().trim(),
             'bowlerTwoWicket': $('.cb-col.cb-col-8.text-right').eq(7).text().trim(),
             'bowlerTwoEconomy': $('.cb-col.cb-col-14.text-right').eq(3).text().trim(),
+            'commentary': commentary.length > 0 ? commentary : ['No commentary available yet. Match may be pre-start or completed without updates.']
         }
     } catch (e) {
         throw new InternalServer("Something went wrong")
     }
 }
-
 
 const fetchMatches = async (endpoint, origin = "international") => {
     try {

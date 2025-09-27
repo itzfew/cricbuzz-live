@@ -9,43 +9,38 @@ const fetchScore = async (matchId) => {
         const response = await axios.get(`${CRICBUZZ_URL}/live-cricket-scores/${matchId}`);
         const $ = cheerio.load(response.data);
 
-        const update = $('.cb-col.cb-col-100.cb-min-stts.cb-text-complete').text().trim() || 'Match Stats will Update Soon';
-        const process = $('.cb-text-inprogress').text().trim() || 'Match Stats will Update Soon';
-        const noresult = $('.cb-col.cb-col-100.cb-font-18.cb-toss-sts.cb-text-abandon').text().trim() || 'Match Stats will Update Soon';
-        const stumps = $('.cb-text-stumps').text().trim() || 'Match Stats will Update Soon';
-        const lunch = $('.cb-text-lunch').text().trim() || 'Match Stats will Update Soon';
-        const inningsbreak = $('.cb-text-inningsbreak').text().trim() || 'Match Stats will Update Soon';
-        const tea = $('.cb-text-tea').text().trim() || 'Match Stats will Update Soon';
-        const rain_break = $('.cb-text-rain').text().trim() || 'Match Stats will Update Soon';
-        const wet_outfield = $('.cb-text-wetoutfield').text().trim() || 'Match Stats will Update Soon';
+        const minInf = $('.cb-min-inf');
 
-        // Extract commentary: Last 10 non-empty lines from .cb-com-ln elements
-        const allCommentary = $('.cb-com-ln').map((i, el) => $(el).text().trim()).get();
-        const commentary = allCommentary.slice(-10).filter(text => text.length > 0 && !text.includes('Stats by') && !text.includes('Local Time')); // Filter out stats/headers if needed
+        const update = $('.cb-text-stumps').text().trim() || $('.cb-text-complete').text().trim() || $('.cb-text-inprogress').text().trim() || $('.cb-col.cb-col-100.cb-font-18.cb-toss-sts.cb-text-abandon').text().trim() || $('.cb-text-lunch').text().trim() || $('.cb-text-inningsbreak').text().trim() || $('.cb-text-tea').text().trim() || $('.cb-text-rain').text().trim() || $('.cb-text-wetoutfield').text().trim() || 'Match Stats will Update Soon';
+
+        // Extract commentary: Last 10 non-empty lines from .cb-com-ln elements within commentary section
+        const commSection = $('.cb-comm-pg');
+        const allCommentary = commSection.find('.cb-com-ln').map((i, el) => $(el).text().trim()).get();
+        const commentary = allCommentary.slice(-10).filter(text => text.length > 0 && !text.includes('Stats by') && !text.includes('Local Time'));
 
         return {
             'title': $('.cb-nav-hdr.cb-font-18.line-ht24').text().trim().replace(', Commentary', ''),
-            'update': update !== 'Match Stats will Update Soon' ? update : process || noresult || stumps || lunch || inningsbreak || tea || rain_break || wet_outfield || 'Match Stats will Update Soon...',
-            'liveScore': $('.cb-font-20.text-bold').text().trim(),
-            'runRate': $('.cb-font-12.cb-text-gray').first().text().trim().replace('CRR:\u00a0', ''),
-            'batsmanOne': $('.cb-col.cb-col-50').eq(1).text().trim(),
-            'batsmanOneRun': $('.cb-col.cb-col-10.ab.text-right').eq(0).text().trim(),
-            'batsmanOneBall': '(' + $('.cb-col.cb-col-10.ab.text-right').eq(1).text().trim() + ')',
-            'batsmanOneSR': $('.cb-col.cb-col-14.ab.text-right').eq(0).text().trim(),
-            'batsmanTwo': $('.cb-col.cb-col-50').eq(2).text().trim(),
-            'batsmanTwoRun': $('.cb-col.cb-col-10.ab.text-right').eq(2).text().trim(),
-            'batsmanTwoBall': '(' + $('.cb-col.cb-col-10.ab.text-right').eq(3).text().trim() + ')',
-            'batsmanTwoSR': $('.cb-col.cb-col-14.ab.text-right').eq(1).text().trim(),
-            'bowlerOne': $('.cb-col.cb-col-50').eq(4).text().trim(),
-            'bowlerOneOver': $('.cb-col.cb-col-10.text-right').eq(4).text().trim(),
-            'bowlerOneRun': $('.cb-col.cb-col-10.text-right').eq(5).text().trim(),
-            'bowlerOneWickets': $('.cb-col.cb-col-8.text-right').eq(5).text().trim(),
-            'bowlerOneEconomy': $('.cb-col.cb-col-14.text-right').eq(2).text().trim(),
-            'bowlerTwo': $('.cb-col.cb-col-50').eq(5).text().trim(),
-            'bowlerTwoOver': $('.cb-col.cb-col-10.text-right').eq(6).text().trim(),
-            'bowlerTwoRun': $('.cb-col.cb-col-10.text-right').eq(7).text().trim(),
-            'bowlerTwoWicket': $('.cb-col.cb-col-8.text-right').eq(7).text().trim(),
-            'bowlerTwoEconomy': $('.cb-col.cb-col-14.text-right').eq(3).text().trim(),
+            'update': update,
+            'liveScore': $('.cb-min-bat-rw .cb-font-20.text-bold').text().trim(),
+            'runRate': $('.cb-min-bat-rw .cb-font-12.cb-text-gray').text().trim().replace(/.*CRR:\s*/, ''),
+            'batsmanOne': minInf.find('.cb-min-itm-rw').eq(0).find('.cb-col.cb-col-50').text().trim(),
+            'batsmanOneRun': minInf.find('.cb-min-itm-rw').eq(0).find('.cb-col').eq(1).text().trim(),
+            'batsmanOneBall': '(' + minInf.find('.cb-min-itm-rw').eq(0).find('.cb-col').eq(2).text().trim() + ')',
+            'batsmanOneSR': minInf.find('.cb-min-itm-rw').eq(0).find('.cb-col').eq(5).text().trim(),
+            'batsmanTwo': minInf.find('.cb-min-itm-rw').eq(1).find('.cb-col.cb-col-50').text().trim(),
+            'batsmanTwoRun': minInf.find('.cb-min-itm-rw').eq(1).find('.cb-col').eq(1).text().trim(),
+            'batsmanTwoBall': '(' + minInf.find('.cb-min-itm-rw').eq(1).find('.cb-col').eq(2).text().trim() + ')',
+            'batsmanTwoSR': minInf.find('.cb-min-itm-rw').eq(1).find('.cb-col').eq(5).text().trim(),
+            'bowlerOne': minInf.find('.cb-min-itm-rw').eq(2).find('.cb-col.cb-col-50').text().trim(),
+            'bowlerOneOver': minInf.find('.cb-min-itm-rw').eq(2).find('.cb-col').eq(1).text().trim(),
+            'bowlerOneRun': minInf.find('.cb-min-itm-rw').eq(2).find('.cb-col').eq(3).text().trim(),
+            'bowlerOneWickets': minInf.find('.cb-min-itm-rw').eq(2).find('.cb-col').eq(4).text().trim(),
+            'bowlerOneEconomy': minInf.find('.cb-min-itm-rw').eq(2).find('.cb-col').eq(5).text().trim(),
+            'bowlerTwo': minInf.find('.cb-min-itm-rw').eq(3).find('.cb-col.cb-col-50').text().trim(),
+            'bowlerTwoOver': minInf.find('.cb-min-itm-rw').eq(3).find('.cb-col').eq(1).text().trim(),
+            'bowlerTwoRun': minInf.find('.cb-min-itm-rw').eq(3).find('.cb-col').eq(3).text().trim(),
+            'bowlerTwoWicket': minInf.find('.cb-min-itm-rw').eq(3).find('.cb-col').eq(4).text().trim(),
+            'bowlerTwoEconomy': minInf.find('.cb-min-itm-rw').eq(3).find('.cb-col').eq(5).text().trim(),
             'commentary': commentary.length > 0 ? commentary : ['No commentary available yet. Match may be pre-start or completed without updates.']
         }
     } catch (e) {
@@ -78,11 +73,11 @@ const fetchMatches = async (endpoint, origin = "international") => {
             $(matchElement).find('.cb-ovr-flo.cb-hmscg-tm-nm').each((i, teamElement) => {
                 const teamName = $(teamElement).text().trim();
                 const run = $(matchElement).find('.cb-ovr-flo').filter(':not(.cb-hmscg-tm-nm)').eq(i).text().trim();
-                const senitizeRun = run.split(teamName).join("")
+                const sanitizeRun = run.replace(teamName, "");  // Fixed typo: senitize -> sanitize, split->replace
 
                 const teamObject = {
                     team: teamName,
-                    run: senitizeRun,
+                    run: sanitizeRun,
                 };
 
                 teams.push(teamObject);
